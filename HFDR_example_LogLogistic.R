@@ -1,3 +1,9 @@
+#
+# Hierarchical False Discovery Rate Control for High-dimensional Survival Analysis with Interactions
+# Authors: Weijuan Liang, Qingzhao Zhang, Shuangge Ma
+# Date: Oct 8th, 2023
+#
+
 #-------------------------- Source packages and functions ----------------------
 # Source the debiased estimator packages
 library(flare)
