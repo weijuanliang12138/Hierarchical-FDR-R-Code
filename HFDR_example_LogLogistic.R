@@ -251,8 +251,6 @@ BH_p_value_func <- function(Y_star, Phi_star, alpha, index_true, hierarchy = "FA
 #' @return TP, true positive
 #' @return FP, false positive
 #' @return MSE, mean square errors of all covariates
-#' delta, the vec norm difference between last two estimate
-#' it, number of iterations
 
 LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delta){
   # Manipulate the data
