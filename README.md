@@ -1,4 +1,4 @@
-# R code for "Hierarchical False Discovery Rate Control for High-dimensional Survival Analysis with Interactions"
+### R code for "Hierarchical False Discovery Rate Control for High-dimensional Survival Analysis with Interactions"
 
 This repository contains the R implementation of the Hierarchical False Discovery Rate (HFDR) method presented in the paper titled "Hierarchical False Discovery Rate Control for High-dimensional Survival Analysis with Interactions" by Liang W., Zhang, Q., and Ma, S. (2023).
 
