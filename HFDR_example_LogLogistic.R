@@ -233,20 +233,38 @@ BH_p_value_func <- function(Y_star, Phi_star, alpha, index_true, hierarchy = "FA
 
 
 #-----------------------------------  FDR control ------------------------------
+#' @param alpha, prespecified FDR level
+#' @param n, sample size
+#' @param S, number of nonzero main genes
+#' @param rho, correlation among covariats X
+#' @param A, scalar 
+#' @param d, number of total main genes
+#' @param q, number of total environment covariates
+#' @param censor_rate, censoring rate of survival
+#' @param Y, survival outcome
+#' @param Phi, augment covariates
+#' @param delta, censoring indicator
+#' 
+#' @return FDR, empirical FDR
+#' @return Power, empirical Power
+#' @return Miss, number of missed true important covariates
+#' @return TP, true positive
+#' @return FP, false positive
+#' @return MSE, mean square errors of all covariates
+#' delta, the vec norm difference between last two estimate
+#' it, number of iterations
+
 LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delta){
   # Manipulate the data
-  Time0_base = system.time({
     data_list   = KM_weight_func(Y, Phi, delta)
     Y_sort      = data_list$Y_sort
     Y_star      = data_list$Y_star
     Phi_sort    = data_list$Phi_sort
     Phi_star    = data_list$Phi_star
     delta_sort  = data_list$delta_sort
-  })
   
   #------------------- marginal methods -----------------------
   # Method 1 BH (without hierarchy)
-  Time_M1 = system.time({
     ret1      = BH_p_value_func(Y_star = Y_star, Phi_star = Phi_star, alpha = alpha,
                                 index_true = index_true, hierarchy = "FALSE")
     S_m1      = ret1$S_m1
@@ -256,10 +274,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     ## FDR
     FDR_m1    = ret1$FDR_m1
     Power_m1  = ret1$Power_m1
-  })
   
   # Method 2 BH-hierarchy (hierarchy)
-  Time_M2 = system.time({
     ret2      = BH_p_value_func(Y_star = Y_star, Phi_star = Phi_star, alpha = alpha, 
                                 index_true = index_true, hierarchy = "TRUE")
     S_m2      = ret2$S_m2
@@ -269,10 +285,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     ## FDR
     FDR_m2    = ret2$FDR_m2
     Power_m2  = ret2$Power_m2
-  })
   
   #------------------- Debiased methods -----------------------  
-  Time1_base = system.time({
     Est_Test_Stat = Debiased_Est_Test_Stat_func(Y_sort = Y_sort, Y_star = Y_star, 
                                                 Phi_sort = Phi_sort, Phi_star = Phi_star, 
                                                 delta_sort = delta_sort)
@@ -282,10 +296,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     
     tp            = (2*log(p) - 2*log(log(p)))^{1/2}
     t_step        = seq(0, tp, length = 1000)
-  })
   
   # Method 3 Proposed (hierarchy)
-  Time_Proposed = system.time({
     # Level 1 test for alpha and beta
     t01       = try(t_step[min(which(sapply(t_step, critical_t_proposed, z = Test_stat, d = d, q = q) < alpha))])
     if("try-error" %in% class(t01)){t01 = sqrt(2*log(p))}
@@ -308,10 +320,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     theta_propsd        = theta_thrshed
     theta_propsd[-S_m3] = 0
     MSE_propsd          = mean((theta_propsd - true_theta)^2)
-  })
   
   # Method 4 Debiased method (without hierarchy)
-  Time_M4 = system.time({
     t02      = try(t_step[min(which(sapply(t_step, critical_t_original, p = p, z = Test_stat) < alpha))])
     if("try-error" %in% class(t02) || is.na(t02)){t02 = sqrt(2*log(p))}
     
@@ -326,11 +336,9 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     theta_m4        = theta_thrshed
     theta_m4[-S_m4] = 0
     MSE_m4          = mean((theta_m4 - true_theta)^2)
-  })
   
   #------------------- Variable selection -----------------------
   # Method 5 VS-D-Lasso
-  Time_M5  = system.time({
     S_m5     = which(abs(theta_thrshed) > 0.1)
     TP_m5    = length(which(S_m5 %in% index_true))
     FP_m5    = length(S_m5) - TP_m5
@@ -342,13 +350,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     theta_m5        = theta_thrshed
     theta_m5[-S_m5] = 0
     MSE_m5          = mean((theta_m5 - true_theta)^2)
-  })
   
   # Method 6 VS-Lasso
-  Time_M6 = system.time({
-    #fit_lasso   = cv.ncvreg(Phi_star, Y_star, penalty = "lasso")
-    #theta_lasso = fit_lasso$fit$beta[, fit_lasso$min][-1]  
-    
     fit_lasso   = cv.ncvsurv(Phi, cbind(Y, delta), penalty = "lasso")
     theta_lasso = fit_lasso$fit$beta[, fit_lasso$min]
     
@@ -363,11 +366,8 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     theta_m6        = -theta_lasso
     theta_m6[-S_m6] = 0
     MSE_m6          = mean((theta_m6 - true_theta)^2)
-  })
   
   # Method 7 VS-MCP
-  Time_M7   = system.time({
-    #fit_MCP   = cv.ncvreg(Phi_star, Y_star, penalty = "MCP")
     fit_MCP   = cv.ncvsurv(Phi, cbind(Y,delta), penalty = "MCP")
     theta_MCP = fit_MCP$fit$beta[, fit_MCP$min]
     
@@ -382,24 +382,12 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
     theta_m7        = -theta_MCP
     theta_m7[-S_m7] = 0
     MSE_m7          = mean((theta_m7 - true_theta)^2)
-  })
-  
-  #------------------- Times recording ---------------------
-  Time_1 = Time0_base + Time_M1
-  Time_2 = Time0_base + Time_M2
-  Time_3 = Time0_base + Time1_base + Time_Proposed
-  Time_4 = Time0_base + Time1_base + Time_M4
-  Time_5 = Time0_base + Time1_base + Time_M5
-  Time_6 = Time_M6
-  Time_7 = Time_M7
-  
   
   FDR_Miss_TP_FP = c(FDR_m1, FDR_m2, FDR_m3, FDR_m4, FDR_m5, FDR_m6, FDR_m7,
                      Power_m1, Power_m2, Power_m3, Power_m4, Power_m5, Power_m6, Power_m7,
                      Miss_m1, Miss_m2, Miss_m3, Miss_m4, Miss_m5, Miss_m6, Miss_m7,
                      TP_m1, TP_m2, TP_m3, TP_m4, TP_m5, TP_m6, TP_m7,
                      FP_m1, FP_m2, FP_m3, FP_m4, FP_m5, FP_m6, FP_m7,
-                     Time_1[3], Time_2[3], Time_3[3], Time_4[3], Time_5[3], Time_6[3], Time_7[3],
                      MSE_propsd, MSE_m4, MSE_m5, MSE_m6, MSE_m7) 
   
   names(FDR_Miss_TP_FP) <- c("FDR_m1", "FDR_m2", "FDR_m3", "FDR_m4", "FDR_m5", "FDR_m6", "FDR_m7",
@@ -407,7 +395,6 @@ LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delt
                              "Miss_m1", "Miss_m2", "Miss_m3", "Miss_m4", "Miss_m5", "Miss_m6", "Miss_m7",
                              "TP_m1", "TP_m2", "TP_m3", "TP_m4", "TP_m5", "TP_m6", "TP_m7",
                              "FP_m1", "FP_m2", "FP_m3", "FP_m4", "FP_m5", "FP_m6", "FP_m7",
-                             "Time_1", "Time_2", "Time_3", "Time_4", "Time_5", "Time_6", "Time_7",
                              "MSE_propsd", "MSE_m4", "MSE_m5", "MSE_m6", "MSE_m7")
   return(FDR_Miss_TP_FP)
 }
@@ -417,5 +404,3 @@ LogLogistic_FDRLevel <- sapply(alpha_set, LogLogistic_fun, n = n, S = S, rho = r
 
 filename <- paste(seed, "LogLogistic_FDRLevel.csv",sep="")
 write.csv(LogLogistic_FDRLevel %>% unlist, filename)
-
-
