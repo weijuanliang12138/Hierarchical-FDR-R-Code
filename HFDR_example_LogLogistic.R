@@ -1,4 +1,4 @@
-#-------------------------- Source packages and functions -------------------------
+#-------------------------- Source packages and functions ----------------------
 # Source the debiased estimator packages
 library(flare)
 library(ncvreg)
@@ -14,7 +14,7 @@ source("lasso_inference.R")
 # set.seed(seed)
 
 
-#-------------------------- initialization parameters -------------------------
+#-------------------------- initialization parameters --------------------------
 # initialization all parameters 
 alpha_set   <- c(0.01, 0.05, 0.10, 0.15, 0.2, 0.25, 0.30)
 censor_rate <- 0.2
@@ -26,7 +26,7 @@ d           <- 200
 q           <- 5
 
 
-#-------------------------- Functions -------------------------
+#--------------------------------- Functions -----------------------------------
 # Construct the Kaplan-Meier weights
 Weight_func <- function(delta_sort, n){
   w         = vector()
@@ -60,7 +60,7 @@ P_value_func <- function(Phi_star_j, Y_star){
   summary(fit_j)$coefficients[2,4]
 }
 
-#-------------------------- Generate data -------------------------
+#--------------------------------- Generate data -------------------------------
 # Generate the data
 ## Generate the X, with AR correlation
 Mean  <- rep(0, d)
@@ -96,7 +96,7 @@ Y     <- ifelse(log(TT) <= log(CC), log(TT), log(CC))
 ## censor indicator
 delta <- ifelse(TT <= CC, 1, 0)
 
-#-------------------------- KM Weighted design-------------------------
+#------------------------------- KM Weighted design-----------------------------
 KM_weight_func <- function(Y, Phi, delta){
   ## Sort the data according to Y
   observe      = data.frame(Y, Phi, delta)
@@ -118,7 +118,7 @@ KM_weight_func <- function(Y, Phi, delta){
 }
 
 
-#-------------- Test Statistics by Debiased Estimator -------------
+#-------------------------- Test Statistics by Debiased Estimator --------------
 Debiased_Est_Test_Stat_func  <- function(Y_sort, Y_star, Phi_sort, Phi_star, delta_sort){
   #------------------ Fit debiased Lasso ------------------
   fit          = SSLasso(Phi_star, Y_star, mu = 2*sqrt(log(p)/n), verbose = T)
@@ -226,8 +226,7 @@ BH_p_value_func <- function(Y_star, Phi_star, alpha, index_true, hierarchy = "FA
 }
 
 
-#-------------------------- FDR control -------------------------
-
+#-----------------------------------  FDR control ------------------------------
 LogLogistic_fun <- function(alpha, n, S, rho, A, d, q, censor_rate, Y, Phi, delta){
   # Manipulate the data
   Time0_base = system.time({
